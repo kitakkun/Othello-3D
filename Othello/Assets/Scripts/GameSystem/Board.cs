@@ -8,6 +8,7 @@ using UniRx.Triggers;
 using Unity.VisualScripting;
 using UnityEditor.Timeline.Actions;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.Windows.WebCam;
 using Color = UnityEngine.Color;
 
@@ -15,35 +16,32 @@ namespace GameSystem
 {
     public class Board : MonoBehaviour
     {
-        private ReactiveCollection<CellStatus> _cells;
+        private ReactiveProperty<CellStatus>[,] _cells;
         public const int CellSize = 8;
         public CellStatus Turn { get; private set; }
 
-        public IObservable<CollectionReplaceEvent<CellStatus>> CellChangeAsObservable()
-            => _cells.ObserveReplace();
-            
+        public IObservable<Value<CellStatus>> CellAsObservable(int x, int y) => _cells[x, y].Zip(_cells[x, y].Skip(1), 
+                (a, b) => new Value<CellStatus>(a, b)).AsObservable();
 
         void Awake()
         {
             Turn = CellStatus.Black;
-            _cells = new ReactiveCollection<CellStatus>();
+            _cells = new ReactiveProperty<CellStatus>[CellSize, CellSize];
             for (var x = 0; x < CellSize; x++)
             {
                 for (var y = 0; y < CellSize; y++)
                 {
-                    _cells.Add(CellStatus.Empty);
+                    _cells[x, y] = new ReactiveProperty<CellStatus>(CellStatus.Empty);
                 }
             }
 
-            _cells.ObserveReplace()
-                .Subscribe(replace =>
+            _cells[0,0].Zip(_cells[0,0].Skip(1), (x, y) => new {OldValue = x, NewValue = y})
+                .Subscribe(change =>
                 {
-                    var x = replace.Index % CellSize;
-                    var y = replace.Index / CellSize;
-                    var status = replace.OldValue;
-                    var newStatus = replace.NewValue;
+                    var status = change.OldValue;
+                    var newStatus = change.NewValue;
                     Debug.Log(
-                        $"[REPLACE] Cell at ({x}, {y}) was replaced. {status.ToString()} => {newStatus.ToString()}");
+                        $"[REPLACE] Cell at ({0}, {0}) was replaced. {status.ToString()} => {newStatus.ToString()}");
                 })
                 .AddTo(this);
 
@@ -84,13 +82,15 @@ namespace GameSystem
 
         public void PutDisc(int pos, CellStatus color)
         {
-            _cells[pos] = color;
+            var x = pos % CellSize;
+            var y = pos / CellSize;
+            _cells[x, y].Value = color;
             Reverse(pos, color);
         }
 
         private void ForcePutDisc(int x, int y, CellStatus color)
         {
-            _cells[x + y * CellSize] = color;
+            _cells[x, y].Value = color;
         }
 
         List<int> GetAvailableCells(CellStatus color)
@@ -100,13 +100,12 @@ namespace GameSystem
             {
                 for (var y = 0; y < CellSize; y++)
                 {
-                    var pos = x + y * CellSize;
                     // Filter empty
-                    if (_cells[pos] == CellStatus.Empty)
+                    if (_cells[x, y].Value == CellStatus.Empty)
                     {
-                        if (CanPutDisc(pos, color))
+                        if (CanPutDisc(x + y * CellSize, color))
                         {
-                            availableCells.Add(pos);
+                            availableCells.Add(x + y * CellSize);
                         }
                     }
 
@@ -141,26 +140,22 @@ namespace GameSystem
 
         void ReverseInDirection(int cellNumber, CellStatus color, Direction direction)
         {
-            var position = cellNumber;
-
-            bool flag = false;
-            while (position is >= 0 and <= CellSize * CellSize - 1)
+            var x = cellNumber % CellSize;
+            var y = cellNumber / CellSize;
+            while (true)
             {
-                if (_cells[position] == color && flag) break;
-                _cells[position] = color;
-                flag = true;
                 // y-axis movement
                  switch (direction)
                  {
                      case Direction.Up:
                      case Direction.UpRight:
                      case Direction.UpLeft:
-                         position -= CellSize;
+                         y--;
                          break;
                      case Direction.Down:
                      case Direction.DownLeft:
                      case Direction.DownRight:
-                         position += CellSize;
+                         y++;
                          break;
                  }
                  // x-axis movement
@@ -169,13 +164,22 @@ namespace GameSystem
                      case Direction.Left:
                      case Direction.UpLeft:
                      case Direction.DownLeft:
-                         position -= 1;
+                         x--;
                          break;
                      case Direction.Right:
                      case Direction.UpRight:
                      case Direction.DownRight:
-                         position += 1;
+                         x++;
                          break;
+                 }
+                 var isValidPos = x is >= 0 and <= CellSize - 1 && y is >= 0 and <= CellSize - 1;
+                 if (isValidPos)
+                 {
+                     _cells[x, y].Value = color;
+                 }
+                 else
+                 {
+                     break;
                  }
             }
         }
@@ -236,24 +240,22 @@ namespace GameSystem
         List<CellStatus> GetSequenceStatus(int cellNumber, Direction direction)
         {
             var sequence = new List<CellStatus>();
-            var position = cellNumber;
-            
-            while (position is >= 0 and <= CellSize * CellSize - 1)
+            var x = cellNumber % CellSize;
+            var y = cellNumber / CellSize;
+            while (true)
             {
-                // add status
-                sequence.Add(_cells[position]);
                 // y-axis movement
                 switch (direction)
                 {
                     case Direction.Up:
                     case Direction.UpRight:
                     case Direction.UpLeft:
-                        position -= CellSize;
+                        y--;
                         break;
                     case Direction.Down:
                     case Direction.DownLeft:
                     case Direction.DownRight:
-                        position += CellSize;
+                        y++;
                         break;
                 }
                 // x-axis movement
@@ -262,16 +264,24 @@ namespace GameSystem
                     case Direction.Left:
                     case Direction.UpLeft:
                     case Direction.DownLeft:
-                        position -= 1;
+                        x--;
                         break;
                     case Direction.Right:
                     case Direction.UpRight:
                     case Direction.DownRight:
-                        position += 1;
+                        x++;
                         break;
                 }
+                var isValidPos = x is >= 0 and <= CellSize - 1 && y is >= 0 and <= CellSize - 1;
+                if (isValidPos)
+                {
+                    sequence.Add(_cells[x, y].Value);
+                }
+                else
+                {
+                    break;
+                }
             }
-            sequence.RemoveAt(0);
 
             return sequence;
         }
@@ -291,5 +301,16 @@ namespace GameSystem
     public enum CellStatus
     {
         Empty, Black, White
+    }
+
+    public class Value<T>
+    {
+        public Value(T oldValue, T newValue)
+        {
+            this.oldValue = oldValue;
+            this.newValue = newValue;
+        }
+        public T oldValue;
+        public T newValue;
     }
 }

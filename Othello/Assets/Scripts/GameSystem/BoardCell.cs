@@ -23,12 +23,11 @@ namespace GameSystem
          {
              FindSelfPosition();
              _board = FindObjectOfType<Board>();
-             _board.CellChangeAsObservable()
-                 .Where(e => e.Index == X + Y * Board.CellSize)
-                 .Subscribe(e =>
+             _board.CellAsObservable(X, Y)
+                 .Subscribe(v =>
                  {
-                     var oldStatus = e.OldValue;
-                     var newStatus = e.NewValue;
+                     var oldStatus = v.oldValue;
+                     var newStatus = v.newValue;
                      if (oldStatus == CellStatus.Empty && newStatus == CellStatus.Black)
                      {
                          PlaceBlack();
