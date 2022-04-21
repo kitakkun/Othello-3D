@@ -175,6 +175,10 @@ namespace GameSystem
                  var isValidPos = x is >= 0 and <= CellSize - 1 && y is >= 0 and <= CellSize - 1;
                  if (isValidPos)
                  {
+                     if (_cells[x, y].Value == color)
+                     {
+                         break;
+                     }
                      _cells[x, y].Value = color;
                  }
                  else
@@ -219,22 +223,28 @@ namespace GameSystem
         bool CanPutDisc(int cellNumber, CellStatus color, Direction direction)
         {
             var sequence = GetSequenceStatus(cellNumber, direction);
-            bool canPut = false;
+            bool reversableAppeared = false;
             foreach (var c in sequence)
             {
-                if (c == CellStatus.Empty) return false;
+                if (c == CellStatus.Empty)
+                {
+                    return false;
+                }
                 else if (c != color)
                 {
-                    canPut = true;
-                    continue;
+                    reversableAppeared = true;
                 }
                 else
                 {
+                    if (reversableAppeared)
+                    {
+                        return true;
+                    }
                     break;
                 }
             }
 
-            return canPut;
+            return false;
         }
 
         List<CellStatus> GetSequenceStatus(int cellNumber, Direction direction)
