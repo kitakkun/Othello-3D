@@ -1,16 +1,8 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Runtime.ConstrainedExecution;
 using UniRx;
 using UniRx.Triggers;
-using Unity.VisualScripting;
-using UnityEditor.Timeline.Actions;
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.Windows.WebCam;
-using Color = UnityEngine.Color;
 
 namespace GameSystem
 {
