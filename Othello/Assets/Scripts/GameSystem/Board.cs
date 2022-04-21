@@ -74,7 +74,13 @@ namespace GameSystem
         {
             var x = pos % CellSize;
             var y = pos / CellSize;
-            if (GetAvailableCells(color).Contains(pos))
+            var availableCells = GetAvailableCells(color);
+            if (availableCells.Count == 0)
+            {
+                // パス
+                ChangeTurn();
+            }
+            if (availableCells.Contains(pos))
             {
                 _cells[x, y].Value = color;
                 Reverse(pos, color);
