@@ -74,8 +74,11 @@ namespace GameSystem
         {
             var x = pos % CellSize;
             var y = pos / CellSize;
-            _cells[x, y].Value = color;
-            Reverse(pos, color);
+            if (GetAvailableCells(color).Contains(pos))
+            {
+                _cells[x, y].Value = color;
+                Reverse(pos, color);
+            }
         }
 
         private void ForcePutDisc(int x, int y, CellStatus color)
