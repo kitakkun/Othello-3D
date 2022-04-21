@@ -35,16 +35,6 @@ namespace GameSystem
                 }
             }
 
-            _cells[0,0].Zip(_cells[0,0].Skip(1), (x, y) => new {OldValue = x, NewValue = y})
-                .Subscribe(change =>
-                {
-                    var status = change.OldValue;
-                    var newStatus = change.NewValue;
-                    Debug.Log(
-                        $"[REPLACE] Cell at ({0}, {0}) was replaced. {status.ToString()} => {newStatus.ToString()}");
-                })
-                .AddTo(this);
-
             this.UpdateAsObservable()
                 .Subscribe(_ =>
                 {
