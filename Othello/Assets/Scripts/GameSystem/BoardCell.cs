@@ -40,7 +40,8 @@ namespace GameSystem
                      {
                          FlipDiscToBlack();
                      }
-                 });
+                 })
+                 .AddTo(this);
          }
 
          // めんどくさいので計算でx, y座標を出します
@@ -81,12 +82,6 @@ namespace GameSystem
          {
              _disc = Instantiate(_discPrefab, transform.position + Vector3.up * _discYOffset, Quaternion.identity, transform);
              _disc.GetComponent<Animator>().SetTrigger("putBlack");
-         }
-     
-         // Update is called once per frame
-         void Update()
-         {
-             
          }
      }   
 }

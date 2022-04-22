@@ -83,6 +83,23 @@ namespace GameSystem
         {
             _cells[x, y].Value = color;
         }
+        
+        public int CountCell(CellStatus status)
+        {
+            int count = 0;
+            for (var x = 0; x < CellSize; x++)
+            {
+                for (var y = 0; y < CellSize; y++)
+                {
+                    if (_cells[x, y].Value == status)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
 
         List<int> GetAvailableCells(CellStatus color)
         {
