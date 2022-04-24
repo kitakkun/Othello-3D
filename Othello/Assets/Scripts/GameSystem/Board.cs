@@ -43,7 +43,11 @@ namespace GameSystem
         void IndicateAvailablePos()
         {
             var list = GetAvailableCells(Turn);
-            Debug.Log(list.Count);
+            if (list.Count == 0)
+            {
+                ChangeTurn();
+                return;
+            }
             foreach (var cell in FindObjectsOfType<BoardCell>())
             {
                 cell.TurnOffHighlight();
