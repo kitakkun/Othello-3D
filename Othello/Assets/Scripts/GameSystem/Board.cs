@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
 
 namespace GameSystem
 {
+    public enum PlaceOperationStatus
+    {
+        Accepted, Rejected, Skipped
+    }
     public class Board : MonoBehaviour
     {
         private ReactiveProperty<CellStatus>[,] _cells;
@@ -51,7 +56,7 @@ namespace GameSystem
             foreach (var cell in FindObjectsOfType<BoardCell>())
             {
                 cell.TurnOffHighlight();
-                if (list.Contains(cell.X + cell.Y * CellSize))
+                if (list.Contains(new Vector2Int(cell.X, cell.Y)))
                 {
                     cell.TurnOnHighlight();
                 }
@@ -66,7 +71,7 @@ namespace GameSystem
             ForcePutDisc(CellSize / 2 - 1, CellSize/2, CellStatus.White);
         }
 
-        public void PutDisc(int pos, CellStatus color)
+        public PlaceOperationStatus PutDisc(int pos, CellStatus color)
         {
             var x = pos % CellSize;
             var y = pos / CellSize;
@@ -74,13 +79,25 @@ namespace GameSystem
             if (availableCells.Count == 0)
             {
                 // パス
-                ChangeTurn();
+                // ChangeTurn();
+                return PlaceOperationStatus.Skipped;
             }
-            if (availableCells.Contains(pos))
+            if (availableCells.Contains(new Vector2Int(x, y)))
             {
                 _cells[x, y].Value = color;
                 Reverse(pos, color);
+                return PlaceOperationStatus.Accepted;
             }
+            else
+            {
+                return PlaceOperationStatus.Rejected;
+            }
+
+        }
+
+        public PlaceOperationStatus PutDisc(int x, int y, CellStatus color)
+        {
+            return PutDisc(x + y * CellSize, color);
         }
 
         private void ForcePutDisc(int x, int y, CellStatus color)
@@ -105,9 +122,9 @@ namespace GameSystem
             return count;
         }
 
-        List<int> GetAvailableCells(CellStatus color)
+        public List<Vector2Int> GetAvailableCells(CellStatus color)
         {
-            var availableCells = new List<int>();
+            var availableCells = new List<Vector2Int>();
             for (var x = 0; x < CellSize; x++)
             {
                 for (var y = 0; y < CellSize; y++)
@@ -117,7 +134,7 @@ namespace GameSystem
                     {
                         if (CanPutDisc(x + y * CellSize, color))
                         {
-                            availableCells.Add(x + y * CellSize);
+                            availableCells.Add(new Vector2Int(x, y));
                         }
                     }
 

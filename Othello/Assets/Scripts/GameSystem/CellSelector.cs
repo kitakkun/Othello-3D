@@ -1,3 +1,4 @@
+using System;
 using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
@@ -7,6 +8,10 @@ namespace GameSystem
     public class CellSelector : MonoBehaviour
     {
         private Board _board;
+        private Subject<Vector2Int> _selectedPosition;
+
+        public IObservable<Vector2Int> SelectedPositionAsObservable() => _selectedPosition;
+
         void Start()
         {
             _board = FindObjectOfType<Board>();
@@ -38,8 +43,10 @@ namespace GameSystem
                var obj = hit.collider.gameObject;
                var cell = obj.GetComponent<BoardCell>();
                Debug.Log($"Hit: x = {cell.X} y = {cell.Y}");
-               _board.PutDisc(cell.X + Board.CellSize * cell.Y, _board.Turn);
+               _selectedPosition.OnNext(new Vector2Int(cell.X, cell.Y));
+               // _board.PutDisc(cell.X + Board.CellSize * cell.Y, _board.Turn);
             } 
         }
+        
     }
 }
