@@ -1,25 +1,25 @@
+using GameSystem.Logic;
 using UniRx;
 using UnityEngine;
 
-namespace GameSystem
+namespace GameSystem.Visuals
 {
      public class BoardCell : MonoBehaviour
      {
          [SerializeField] private GameObject _discPrefab;
          [SerializeField] private float _discYOffset = .5f;
          [SerializeField] private Light _light;
-         private Board _board;
+         private BoardController _boardController;
          private GameObject _disc;
 
          public int X { get; private set; }
 
          public int Y { get; private set; }
-         // Start is called before the first frame update
-         void Awake()
+
+         public void Setup(BoardController controller)
          {
              FindSelfPosition();
-             _board = FindObjectOfType<Board>();
-             _board.CellAsObservable(X, Y)
+             controller.Board.CellAsObservable(X, Y)
                  .Subscribe(v =>
                  {
                      var oldStatus = v.oldValue;
@@ -42,6 +42,7 @@ namespace GameSystem
                      }
                  })
                  .AddTo(this);
+             
          }
 
          // めんどくさいので計算でx, y座標を出します
@@ -50,7 +51,6 @@ namespace GameSystem
              var position = transform.localPosition;
              X = (int)(position.x + 3.5);
              Y = (int)(position.z + 3.5);
-             Debug.Log($"x = {X}, y = {Y}");
          }
 
          public void TurnOnHighlight()

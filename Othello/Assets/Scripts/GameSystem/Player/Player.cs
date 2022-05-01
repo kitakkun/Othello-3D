@@ -1,30 +1,43 @@
+using GameSystem.Visuals;
 using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
 
-namespace GameSystem
+namespace GameSystem.Player
 {
     // 手動操作するプレイヤー
     public class Player : MonoBehaviour, IPlayer
     {
         private GameManager _manager;
-        private CellSelector _selector;
 
-        void Start()
+        public void Setup(GameManager manager)
         {
-            _manager = FindObjectOfType<GameManager>();
-       
             // マウスボタンが押下されたら
             this.UpdateAsObservable()
                 // .Where(_ => _isSelecting)
                 .Where(_ => Input.GetMouseButtonDown(0))
                 .Select(_ => Input.mousePosition)
-                .Select(pos => PosToCellPos(pos))
+                .Select(PosToCellPos)
                 .Subscribe(cellPos =>
                 {
                     if (cellPos != null)
                     {
-                        _manager.Broker.Publish(
+                        manager.Broker.Publish(
+                            new GameEvent.PlaceRequest(this, cellPos.Value));
+                    }
+                })
+                .AddTo(this);
+            // タッチされたら
+            this.UpdateAsObservable()
+                .Where(_ => Input.touchSupported)
+                .Where(_ => Input.touches.Length > 0)
+                .Select(_ => (Vector3)Input.GetTouch(0).position)
+                .Select(PosToCellPos)
+                .Subscribe(cellPos =>
+                {
+                    if (cellPos != null)
+                    {
+                        manager.Broker.Publish(
                             new GameEvent.PlaceRequest(this, cellPos.Value));
                     }
                 })

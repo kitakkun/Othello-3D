@@ -1,21 +1,23 @@
+using GameSystem.Logic;
+using GameSystem.Visuals;
 using TMPro;
 using UniRx;
 using UnityEngine;
 
-namespace GameSystem
+namespace GameSystem.UI
 {
     public class UICounter : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI _textMeshProUGUI;
-        private Board _board;
+        private BoardController _boardController;
         void Start()
         {
-            _board = FindObjectOfType<Board>();
+            _boardController = FindObjectOfType<BoardController>();
             for (var x = 0; x < Board.CellSize; x++)
             {
                 for (var y = 0; y < Board.CellSize; y++)
                 {
-                    _board.CellAsObservable(x, y)
+                    _boardController.Board.CellAsObservable(x, y)
                         .Subscribe(_ => UpdateUI()) .AddTo(this);
                 }
             }
@@ -23,8 +25,8 @@ namespace GameSystem
 
         void UpdateUI()
         {
-            var blackCnt = _board.CountCell(CellStatus.Black);
-            var whiteCnt = _board.CountCell(CellStatus.White);
+            var blackCnt = _boardController.Board.Count(CellStatus.Black);
+            var whiteCnt = _boardController.Board.Count(CellStatus.White);
             _textMeshProUGUI.text = $"BLACK: {blackCnt}, WHITE: {whiteCnt}";
         }
     }
