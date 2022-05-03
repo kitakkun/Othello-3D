@@ -1,7 +1,11 @@
 {
     "name": "UniTask.Editor",
     "references": [
-        "UniTask"
+        "UniTask",
+        "UnityEditor.UI",
+        "UnityEngine.UI",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
     ],
     "includePlatforms": [
         "Editor"

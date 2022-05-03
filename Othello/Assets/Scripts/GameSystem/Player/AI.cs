@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using GameSystem.Logic;
 using UniRx;
 using UnityEngine;
@@ -29,20 +30,18 @@ namespace GameSystem.Player
             _manager = manager;
             _manager.Broker.Receive<GameEvent.TurnChange>()
                 .Where(e => ReferenceEquals(this, e.Player))
-                .Subscribe(_ =>
+                .Subscribe(async(_) =>
                     {
                         Debug.Log("AI turn");
-                        Observable.Timer(TimeSpan.FromSeconds(1f))
-                            .Subscribe(_ =>
-                            {
-                                var pos = PlaceDisc();
-                                _manager.Broker.Publish(
-                                    new GameEvent.PlaceRequest(this, pos.Result));
-                            });
+                        await UniTask.SwitchToThreadPool();
+                        var pos = await PlaceDisc();
+                        await UniTask.SwitchToMainThread();
+                        _manager.Broker.Publish(
+                            new GameEvent.PlaceRequest(this, pos));
                     });
         }
 
-        private async Task<Vector2Int> PlaceDisc()
+        private async UniTask<Vector2Int> PlaceDisc()
         {
             var list = _manager.GetAvailableCells();
             if (cornerPriority)
@@ -57,91 +56,102 @@ namespace GameSystem.Player
             }
 
             // シミュレーション
-            // var simResults = new Dictionary<Vector2Int, float>();
-            // var simlationRepeats = 20;
-            // List<Task> tasks = new List<Task>();
-            // foreach (var pos in list)
-            // {
-            //     var t = Task.Run(
-            //         () => simResults.Add(pos, SimulateGame(_manager.BoardCells, list[0], simlationRepeats)));
-            //     tasks.Add(t);
-            // }
-            //
-            // foreach (var task in tasks)
-            // {
-            //     await task.ConfigureAwait(false);
-            // }
-            //
-            var rnd = new System.Random();
-            Vector2Int selectPos = list[rnd.Next(0, list.Count)];
-            // float maxTMP = 0;
-            // foreach (var (pos, count) in simResults)
-            // {
-            //     if (count >= maxTMP)
-            //     {
-            //         selectPos = pos;
-            //         maxTMP = count;
-            //     }
-            // }
-
-            return selectPos;
+            SimulatorBoard simulator = new SimulatorBoard(_manager.GetCloneBoard(), _manager.Color(this));
+            return await DoSimulation(simulator, list, 80);
         }
 
-        // placePointに石を設置した場合の最終的な自石の数をシミュレートします．平均値を返します
-        private float SimulateGame(CellStatus[,] current, Vector2Int placePoint, int repeats = 1)
+        async UniTask<Vector2Int> DoSimulation(SimulatorBoard simulator, List<Vector2Int> options, int repeats = 100)
         {
-            SimulatorBoard simBoard = new SimulatorBoard(current);
-            float sum = 0;
-            for (int i = 0; i < repeats; i++)
+            List<UniTask<int>> tasks = new List<UniTask<int>>();
+            foreach (var v in options)
             {
-                // sum += simBoard.Simulate(_manager.Color(this), placePoint);
+                for (var i = 0; i < repeats; i++)
+                {
+                    tasks.Add(simulator.Simulate(v));
+                }
             }
 
-            sum /= repeats;
-            return sum;
+            var results = await UniTask.WhenAll(tasks);
+            var estimatedCounts = new Dictionary<Vector2Int, int>();
+            for (var i = 0; i < repeats * options.Count; i += repeats)
+            {
+                double sum = 0;
+                for (var j = i; j < repeats; j++)
+                {
+                    sum += results[j];
+                }
+
+                var estimatedResult = (int)(sum / repeats);
+                
+                estimatedCounts.Add(options[i/repeats], estimatedResult);
+            }
+
+            int maxValue = 0;
+            Vector2Int result = options[0];
+            foreach ((var key, var value) in estimatedCounts)
+            {
+                if (value > maxValue)
+                {
+                    maxValue = value;
+                    result = key;
+                }
+            }
+
+            return result;
         }
     }
 
     // シミュレーション用
-    public class SimulatorBoard
+    public class SimulatorBoard : BitBoard
     {
-        public Board Board;
-        public CellStatus Turn;
-        private CellStatus[,] baseBoard;
-
-        public SimulatorBoard(CellStatus[,] current)
+        private bool Turn;
+        private BitBoard baseBoard;
+        private bool selfColor;
+        
+        public SimulatorBoard(BitBoard current, bool selfColor)
         {
             baseBoard = current;
+            this.selfColor = selfColor;
         }
 
         // posに置いた場合の最終結果(自石の数)を返します
-        public int Simulate(CellStatus color, Vector2Int pos)
+        public async UniTask<int> Simulate(Vector2Int pos)
         {
-            Board = new Board(baseBoard);
-            Turn = color;
-            var code = Board.TryPlace(Turn, pos);
-            while (!Board.FilledAll)
+            this.Black = baseBoard.Black;
+            this.White = baseBoard.White;
+            Turn = selfColor;
+            var code = Put(Turn, pos);
+            await DoUntilConcludes();
+            return Count(selfColor);
+        }
+
+        private async UniTask<Unit> DoUntilConcludes()
+        {
+            return await Task.Run(() =>
             {
-                ChangeTurn();
-                var options = Board.GetAvailablePositions(Turn);
-                if (options.Count == 0)
+                while (!Concluded)
                 {
-                    continue;
+                    ChangeTurn();
+                    var options = Bit2xy(AvailablePositions(Turn));
+                    if (options.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var rnd = new System.Random();
+                    var selectedPos = options[rnd.Next(0, options.Count)];
+                    Put(Turn, selectedPos);
                 }
 
-                var rnd = new System.Random();
-                var selectedPos = options[rnd.Next(0, options.Count)];
-                Board.TryPlace(Turn, selectedPos);
-            }
-
-            return Board.Count(color);
+                return new Unit();
+            });
+            
         }
 
         // ターン変更
         public void ChangeTurn()
         {
-            if (Turn == CellStatus.Black) Turn = CellStatus.White;
-            else if (Turn == CellStatus.White) Turn = CellStatus.Black;
+            Turn = !Turn;
         }
     }
 

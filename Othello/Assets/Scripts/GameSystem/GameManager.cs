@@ -109,6 +109,11 @@ namespace GameSystem
             return _board.Bit2xy(_board.AvailablePositions(GetTurnColor()));
         }
 
+        public BitBoard GetCloneBoard()
+        {
+            return new BitBoard(_board);
+        }
+
         // public CellStatus[,] BoardCells => _board.GetAllCellStatus();
     }
 }

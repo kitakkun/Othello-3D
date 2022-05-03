@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace GameSystem.Logic
@@ -18,6 +19,9 @@ namespace GameSystem.Logic
         public UInt64 PlacedArea => Black | White;
         // 石が配置されていない箇所が1, それ以外が0
         public UInt64 EmptyArea => ~PlacedArea;
+        // ゲーム終了フラグ
+        public bool Concluded => EmptyArea == 0 || AvailablePositions(Constants.ColorWhite) == 0 &&
+            AvailablePositions(Constants.ColorBlack) == 0;
         
         // ビット配列を(x, y)座標の配列へ変換 1の場所がそれぞれ座標として返る
         public List<Vector2Int> Bit2xy(UInt64 map)
@@ -45,6 +49,14 @@ namespace GameSystem.Logic
         private void UpdateBoard(bool color, UInt64 newBoard)
         {
             var _ = color == Constants.ColorBlack ? Black = newBoard : White = newBoard;
+        }
+        
+        public BitBoard(){}
+
+        public BitBoard(BitBoard board)
+        {
+            this._white = board.White;
+            this._black = board.Black;
         }
 
         public void DebugPrint(UInt64 map)
@@ -126,11 +138,14 @@ namespace GameSystem.Logic
         // (x, y)座標に配置します
         public PlaceOperationCode Put(bool selfColor, int x, int y, bool reverse=true)
         {
+            if (AvailablePositions(selfColor) == 0)
+            {
+                return PlaceOperationCode.Skipped;
+            }
             if (!Positionable(selfColor, x, y))
             {
                 return PlaceOperationCode.Rejected;
             }
-            Debug.Log("Placed");
             // 石の配置
             var selfBoard = Color2Board(selfColor);
             var place = CoordinateToBit(x, y);
