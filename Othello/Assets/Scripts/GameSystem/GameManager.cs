@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks.Triggers;
 using GameSystem.Logic;
 using GameSystem.Visuals;
 using UniRx;

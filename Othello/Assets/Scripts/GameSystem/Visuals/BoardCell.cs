@@ -1,7 +1,6 @@
 using GameSystem.Logic;
 using UniRx;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
 
 namespace GameSystem.Visuals
 {

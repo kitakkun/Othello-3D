@@ -1,14 +1,10 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using GameSystem.Logic;
 using UniRx;
-using Unity.VisualScripting;
 using UnityEngine;
-using Random = UnityEngine.Random;
-using Unit = UniRx.Unit;
+using Random = System.Random;
 
 namespace GameSystem.Player
 {
@@ -29,7 +25,6 @@ namespace GameSystem.Player
                 .Where(e => ReferenceEquals(this, e.Player))
                 .Subscribe(async(_) =>
                     {
-                        Debug.Log("AI turn");
                         await UniTask.SwitchToThreadPool();
                         var pos = await PlaceDisc();
                         await UniTask.SwitchToMainThread();
@@ -181,7 +176,7 @@ namespace GameSystem.Player
                         continue;
                     }
 
-                    var rnd = new System.Random();
+                    var rnd = new Random();
                     var selectedPos = options[rnd.Next(0, options.Count)];
                     Put(Turn, selectedPos);
                 }
