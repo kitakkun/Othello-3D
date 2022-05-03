@@ -5,8 +5,10 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using GameSystem.Logic;
 using UniRx;
+using Unity.VisualScripting;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Unit = UniRx.Unit;
 
 namespace GameSystem.Player
 {
@@ -15,15 +17,8 @@ namespace GameSystem.Player
         private GameManager _manager;
         // 角を優先して取るかどうか
         public bool cornerPriority = true;
-
-        private List<Vector2Int> _corners =
-            new List<Vector2Int>()
-            {
-                new Vector2Int(0, Board.CellSize - 1),
-                new Vector2Int(Board.CellSize - 1, Board.CellSize - 1),
-                new Vector2Int(0, 0),
-                new Vector2Int(Board.CellSize - 1, 0)
-            };
+        // 敵が角を取れるようになる手を避けるか
+        public bool avoidGivingCorner = true;
 
         public void Setup(GameManager manager)
         {
@@ -44,9 +39,10 @@ namespace GameSystem.Player
         private async UniTask<Vector2Int> PlaceDisc()
         {
             var list = _manager.GetAvailableCells();
+            // 角を優先的に取る
             if (cornerPriority)
             {
-                foreach (var v in _corners)
+                foreach (var v in Constants.Corners)
                 {
                     if (list.Contains(v))
                     {
@@ -54,9 +50,29 @@ namespace GameSystem.Player
                     }
                 }    
             }
+            // 角を取られてしまうような手は省く
+            SimulatorBoard simulator = new SimulatorBoard(_manager.GetCloneBoard(), _manager.Color(this));
+            if (avoidGivingCorner)
+            {
+                var removeVectors = new List<Vector2Int>();
+                for (var i = 0; i < list.Count; i++)
+                {
+                    if (simulator.CornerWillTakenUp(list[i]))
+                    {
+                        removeVectors.Add(list[i]);
+                    }
+                }
+
+                if (list.Count != removeVectors.Count)
+                {
+                    foreach (var v in removeVectors)
+                    {
+                        list.Remove(v);
+                    }
+                }
+            }
 
             // シミュレーション
-            SimulatorBoard simulator = new SimulatorBoard(_manager.GetCloneBoard(), _manager.Color(this));
             return await DoSimulation(simulator, list, 80);
         }
 
@@ -87,6 +103,7 @@ namespace GameSystem.Player
             }
 
             int maxValue = 0;
+            if (options.Count == 0) return Vector2Int.zero;
             Vector2Int result = options[0];
             foreach ((var key, var value) in estimatedCounts)
             {
@@ -113,13 +130,37 @@ namespace GameSystem.Player
             baseBoard = current;
             this.selfColor = selfColor;
         }
+        
+        // 指定座標に置いた場合，角が取られてしまうかどうか
+        public bool CornerWillTakenUp(Vector2Int pos)
+        {
+            Init();
+            Put(Turn, pos);
+            ChangeTurn();
+            var opponentOptions = Bit2xy(AvailablePositions(Turn));
+            foreach (var option in opponentOptions)
+            {
+                if (Constants.Corners.Contains(option))
+                {
+                    return true;
+                }
+            }
 
-        // posに置いた場合の最終結果(自石の数)を返します
-        public async UniTask<int> Simulate(Vector2Int pos)
+            return false;
+        }
+
+        private void Init()
         {
             this.Black = baseBoard.Black;
             this.White = baseBoard.White;
             Turn = selfColor;
+        }
+        
+
+        // posに置いた場合の最終結果(自石の数)を返します
+        public async UniTask<int> Simulate(Vector2Int pos)
+        {
+            Init();
             var code = Put(Turn, pos);
             await DoUntilConcludes();
             return Count(selfColor);
