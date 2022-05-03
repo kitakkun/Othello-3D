@@ -25,7 +25,6 @@ namespace GameSystem.Player
                 .Where(e => ReferenceEquals(this, e.Player))
                 .Subscribe(async(_) =>
                     {
-                        Debug.Log("AI turn");
                         await UniTask.SwitchToThreadPool();
                         var pos = await PlaceDisc();
                         await UniTask.SwitchToMainThread();
