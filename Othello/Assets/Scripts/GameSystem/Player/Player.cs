@@ -21,46 +21,38 @@ namespace GameSystem.Player
                 .Subscribe(cellPos =>
                 {
                     if (cellPos != null)
-                    {
                         manager.Broker.Publish(
                             new GameEvent.PlaceRequest(this, cellPos.Value));
-                    }
                 })
                 .AddTo(this);
             // タッチされたら
             this.UpdateAsObservable()
                 .Where(_ => Input.touchSupported)
                 .Where(_ => Input.touches.Length > 0)
-                .Select(_ => (Vector3)Input.GetTouch(0).position)
+                .Select(_ => (Vector3) Input.GetTouch(0).position)
                 .Select(PosToCellPos)
                 .Subscribe(cellPos =>
                 {
                     if (cellPos != null)
-                    {
                         manager.Broker.Publish(
                             new GameEvent.PlaceRequest(this, cellPos.Value));
-                    }
                 })
                 .AddTo(this);
         }
 
-        Vector2Int? PosToCellPos(Vector3 position)
+        private Vector2Int? PosToCellPos(Vector3 position)
         {
             RaycastHit hit;
-            Ray ray = Camera.main.ScreenPointToRay(position);
+            var ray = Camera.main.ScreenPointToRay(position);
             Debug.DrawRay(ray.origin, ray.direction * 100, Color.red, 0.5f, false);
             if (Physics.Raycast(ray, out hit, 100))
             {
                 var obj = hit.collider.gameObject;
                 var cell = obj.GetComponent<BoardCell>();
-                if (cell != null)
-                {
-                    return new Vector2Int(cell.X, cell.Y);
-                }
+                if (cell != null) return new Vector2Int(cell.X, cell.Y);
             }
 
             return null;
         }
-
     }
 }
