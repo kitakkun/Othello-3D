@@ -1,14 +1,10 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using GameSystem.Logic;
 using UniRx;
-using Unity.VisualScripting;
 using UnityEngine;
-using Random = UnityEngine.Random;
-using Unit = UniRx.Unit;
+using Random = System.Random;
 
 namespace GameSystem.Player
 {
@@ -181,7 +177,7 @@ namespace GameSystem.Player
                         continue;
                     }
 
-                    var rnd = new System.Random();
+                    var rnd = new Random();
                     var selectedPos = options[rnd.Next(0, options.Count)];
                     Put(Turn, selectedPos);
                 }
