@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks.Triggers;
 using GameSystem.Logic;
 using GameSystem.Visuals;
 using UniRx;
@@ -19,11 +20,6 @@ namespace GameSystem
         public MessageBroker Broker;    // イベント発行
 
         public IObservable<IPlayer> Turn => _turn;
-
-        private Vector2Int _initialRightUp = new Vector2Int(Board.CellSize / 2, Board.CellSize / 2);
-        private Vector2Int _initialRightDown = new Vector2Int(Board.CellSize / 2, Board.CellSize / 2 - 1);
-        private Vector2Int _initialLeftUp = new Vector2Int(Board.CellSize / 2 - 1, Board.CellSize / 2);
-        private Vector2Int _initialLeftDown = new Vector2Int(Board.CellSize / 2 - 1, Board.CellSize / 2 - 1);
 
         // 自石の色取得用
         public bool Color(IPlayer player) => _discColor[player]; 
@@ -45,6 +41,17 @@ namespace GameSystem
                 {_players[0], Constants.ColorBlack},
                 {_players[1], Constants.ColorWhite}
             };
+            
+            // ゲーム終了時にエンターキーで再度プレイ
+            this.UpdateAsObservable()
+                .Where(_ => _board.Concluded)
+                .Where(_ => Input.GetKeyDown(KeyCode.Return))
+                .Subscribe(_ =>
+                {
+                    _board.Reset();
+                    _board.Ready();
+                })
+                .AddTo(this);
 
             // ターンの変更時に石配置を要求
             Turn.Where(t => t != null).Subscribe(turn =>
@@ -92,12 +99,6 @@ namespace GameSystem
             if (_turn.Value == _players[0]) _turn.Value = _players[1];
             else if (_turn.Value == _players[1]) _turn.Value = _players[0];
         }
-        
-        // 石の配置要求
-        void RequestPut(IPlayer player)
-        {
-            Broker.Publish(new GameEvent.TurnChange(player));
-        }
 
         public bool GetTurnColor()
         {
@@ -113,7 +114,5 @@ namespace GameSystem
         {
             return new BitBoard(_board);
         }
-
-        // public CellStatus[,] BoardCells => _board.GetAllCellStatus();
     }
 }

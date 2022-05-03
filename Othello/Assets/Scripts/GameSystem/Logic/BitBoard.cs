@@ -58,56 +58,7 @@ namespace GameSystem.Logic
             this._white = board.White;
             this._black = board.Black;
         }
-
-        public void DebugPrint(UInt64 map)
-        {
-            var str = "";
-            for (int y = 0; y < 8; y++)
-            {
-                for (int x = 0; x < 8; x++)
-                {
-                    if ((map & CoordinateToBit(x, y)) != 0)
-                    {
-                        str += " 1️ ";
-                    }
-                    else
-                    {
-                        str += " 0 ";
-                    }
-                }
-
-                str += "\n";
-            }
-
-            Debug.Log(str);  
-        }
-        public void DebugPrint()
-        {
-            var str = "";
-            for (int y = 0; y < 8; y++)
-            {
-                for (int x = 0; x < 8; x++)
-                {
-                    if ((Black & CoordinateToBit(x, y)) != 0)
-                    {
-                        str += " 1️ ";
-                    }
-                    else if ((White & CoordinateToBit(x, y)) != 0)
-                    {
-                        str += " 2 ️";
-                    }
-                    else
-                    {
-                        str += " 0 ";
-                    }
-                }
-
-                str += "\n";
-            }
-
-            Debug.Log(str);
-        }
-
+        
         // ゲームの準備をします
         public void Ready()
         {

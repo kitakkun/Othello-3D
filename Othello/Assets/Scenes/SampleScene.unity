@@ -2156,6 +2156,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cornerPriority: 1
+  avoidGivingCorner: 1
+  simulationRepeats: 500
 --- !u!114 &903248877
 MonoBehaviour:
   m_ObjectHideFlags: 0

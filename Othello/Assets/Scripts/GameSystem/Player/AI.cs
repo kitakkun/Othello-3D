@@ -19,6 +19,8 @@ namespace GameSystem.Player
         public bool cornerPriority = true;
         // 敵が角を取れるようになる手を避けるか
         public bool avoidGivingCorner = true;
+        // シミュレーションを行う回数
+        [SerializeField] int simulationRepeats = 150;
 
         public void Setup(GameManager manager)
         {
@@ -73,7 +75,7 @@ namespace GameSystem.Player
             }
 
             // シミュレーション
-            return await DoSimulation(simulator, list, 80);
+            return await DoSimulation(simulator, list, simulationRepeats);
         }
 
         async UniTask<Vector2Int> DoSimulation(SimulatorBoard simulator, List<Vector2Int> options, int repeats = 100)

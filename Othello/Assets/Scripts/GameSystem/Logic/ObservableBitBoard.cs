@@ -56,6 +56,17 @@ namespace GameSystem.Logic
                 }
             });
         }
+
+        public void Reset()
+        {
+            for (var x = 0; x < Constants.CellSize; x++)
+            {
+                for (var y = 0; y < Constants.CellSize; y++)
+                {
+                    _cells[x, y].Value = CellStatus.Empty;
+                }
+            }
+        }
     }
 
     public class TwoBoards

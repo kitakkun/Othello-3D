@@ -1,6 +1,7 @@
 using GameSystem.Logic;
 using UniRx;
 using UnityEngine;
+using UnityEngine.PlayerLoop;
 
 namespace GameSystem.Visuals
 {
@@ -11,6 +12,7 @@ namespace GameSystem.Visuals
          [SerializeField] private Light _light;
          private BoardController _boardController;
          private GameObject _disc;
+         private Animator _animator;
 
          public int X { get; private set; }
 
@@ -19,6 +21,8 @@ namespace GameSystem.Visuals
          public void Setup(BoardController controller)
          {
              FindSelfPosition();
+             _disc = Instantiate(_discPrefab, transform.position + Vector3.up * _discYOffset, Quaternion.identity, transform);
+             _animator = _disc.GetComponent<Animator>();
              controller.Board.CellAsObservable(X, Y)
                  .Subscribe(v =>
                  {
@@ -40,6 +44,10 @@ namespace GameSystem.Visuals
                      {
                          FlipDiscToBlack();
                      }
+                     else if (newStatus == CellStatus.Empty)
+                     {
+                         Reset();
+                     }
                  })
                  .AddTo(this);
              
@@ -51,6 +59,12 @@ namespace GameSystem.Visuals
              var position = transform.localPosition;
              X = (int)(position.x + 3.5);
              Y = (int)(position.z + 3.5);
+         }
+
+         // セル状態をリセットします
+         void Reset()
+         {
+             _animator.SetTrigger("reset");
          }
 
          public void TurnOnHighlight()
@@ -65,23 +79,21 @@ namespace GameSystem.Visuals
 
          void FlipDiscToWhite()
          {
-             _disc.GetComponent<Animator>().SetTrigger("flipToWhite");
+            _animator.SetTrigger("flipToWhite");
          }
         void FlipDiscToBlack()
          {
-             _disc.GetComponent<Animator>().SetTrigger("flipToBlack");
+             _animator.SetTrigger("flipToBlack");
          }
 
          void PlaceWhite()
          {
-             _disc = Instantiate(_discPrefab, transform.position + Vector3.up * _discYOffset, Quaternion.identity, transform);
-             _disc.GetComponent<Animator>().SetTrigger("putWhite");
+             _animator.SetTrigger("putWhite");
          }
 
          void PlaceBlack()
          {
-             _disc = Instantiate(_discPrefab, transform.position + Vector3.up * _discYOffset, Quaternion.identity, transform);
-             _disc.GetComponent<Animator>().SetTrigger("putBlack");
+             _animator.SetTrigger("putBlack");
          }
      }   
 }

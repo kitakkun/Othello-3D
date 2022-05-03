@@ -5,6 +5,7 @@ namespace GameSystem.Logic
 {
     public class Constants
     {
+        public const int CellSize = 8;  // マス目の数（縦・横）
         public static readonly List<Vector2Int> Corners =
             new List<Vector2Int>()
             {

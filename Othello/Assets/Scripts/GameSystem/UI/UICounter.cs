@@ -13,9 +13,9 @@ namespace GameSystem.UI
         void Start()
         {
             _boardController = FindObjectOfType<BoardController>();
-            for (var x = 0; x < Board.CellSize; x++)
+            for (var x = 0; x < Constants.CellSize; x++)
             {
-                for (var y = 0; y < Board.CellSize; y++)
+                for (var y = 0; y < Constants.CellSize; y++)
                 {
                     _boardController.Board.CellAsObservable(x, y)
                         .Subscribe(_ => UpdateUI()) .AddTo(this);
