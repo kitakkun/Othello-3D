@@ -9,21 +9,18 @@ namespace GameSystem.UI
     public class UICounter : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI _textMeshProUGUI;
+        private ObservableBitBoard _board;
         private BoardController _boardController;
-        void Start()
+
+        private void Start()
         {
             _boardController = FindObjectOfType<BoardController>();
-            for (var x = 0; x < Constants.CellSize; x++)
-            {
-                for (var y = 0; y < Constants.CellSize; y++)
-                {
-                    _boardController.Board.CellAsObservable(x, y)
-                        .Subscribe(_ => UpdateUI()) .AddTo(this);
-                }
-            }
+            _board = _boardController.Board;
+            _board.BlackAsObservable().Subscribe(_ => UpdateUI());
+            _board.WhiteAsObservable().Subscribe(_ => UpdateUI());
         }
 
-        void UpdateUI()
+        private void UpdateUI()
         {
             var blackCnt = _boardController.Board.Count(Constants.ColorBlack);
             var whiteCnt = _boardController.Board.Count(Constants.ColorWhite);
