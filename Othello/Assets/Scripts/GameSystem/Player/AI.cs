@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using GameSystem.Logic;
 using UniRx;
 using UnityEngine;
@@ -28,19 +30,19 @@ namespace GameSystem.Player
             _manager.Broker.Receive<GameEvent.TurnChange>()
                 .Where(e => ReferenceEquals(this, e.Player))
                 .Subscribe(_ =>
-                {
-                    Debug.Log("AI turn");
-                    Observable.Timer(TimeSpan.FromSeconds(1f))
-                        .Subscribe(_ =>
-                        {
-                            var pos = PlaceDisc();
-                            _manager.Broker.Publish(
-                                new GameEvent.PlaceRequest(this, pos));
-                        });
-                });
+                    {
+                        Debug.Log("AI turn");
+                        Observable.Timer(TimeSpan.FromSeconds(1f))
+                            .Subscribe(_ =>
+                            {
+                                var pos = PlaceDisc();
+                                _manager.Broker.Publish(
+                                    new GameEvent.PlaceRequest(this, pos.Result));
+                            });
+                    });
         }
 
-        public Vector2Int PlaceDisc()
+        private async Task<Vector2Int> PlaceDisc()
         {
             var list = _manager.GetAvailableCells();
             if (cornerPriority)
@@ -53,15 +55,94 @@ namespace GameSystem.Player
                     }
                 }    
             }
-            
-            return list[Random.Range(0, list.Count)];
+
+            // シミュレーション
+            // var simResults = new Dictionary<Vector2Int, float>();
+            // var simlationRepeats = 20;
+            // List<Task> tasks = new List<Task>();
+            // foreach (var pos in list)
+            // {
+            //     var t = Task.Run(
+            //         () => simResults.Add(pos, SimulateGame(_manager.BoardCells, list[0], simlationRepeats)));
+            //     tasks.Add(t);
+            // }
+            //
+            // foreach (var task in tasks)
+            // {
+            //     await task.ConfigureAwait(false);
+            // }
+            //
+            var rnd = new System.Random();
+            Vector2Int selectPos = list[rnd.Next(0, list.Count)];
+            // float maxTMP = 0;
+            // foreach (var (pos, count) in simResults)
+            // {
+            //     if (count >= maxTMP)
+            //     {
+            //         selectPos = pos;
+            //         maxTMP = count;
+            //     }
+            // }
+
+            return selectPos;
         }
 
-        // placePointに石を設置した場合の最終的な自石の数をシミュレートします．
-        // private int simulateGame(BoardController currentBoardController, Vector2Int placePoint)
-        // {
-        //     
-        // }
+        // placePointに石を設置した場合の最終的な自石の数をシミュレートします．平均値を返します
+        private float SimulateGame(CellStatus[,] current, Vector2Int placePoint, int repeats = 1)
+        {
+            SimulatorBoard simBoard = new SimulatorBoard(current);
+            float sum = 0;
+            for (int i = 0; i < repeats; i++)
+            {
+                // sum += simBoard.Simulate(_manager.Color(this), placePoint);
+            }
+
+            sum /= repeats;
+            return sum;
+        }
+    }
+
+    // シミュレーション用
+    public class SimulatorBoard
+    {
+        public Board Board;
+        public CellStatus Turn;
+        private CellStatus[,] baseBoard;
+
+        public SimulatorBoard(CellStatus[,] current)
+        {
+            baseBoard = current;
+        }
+
+        // posに置いた場合の最終結果(自石の数)を返します
+        public int Simulate(CellStatus color, Vector2Int pos)
+        {
+            Board = new Board(baseBoard);
+            Turn = color;
+            var code = Board.TryPlace(Turn, pos);
+            while (!Board.FilledAll)
+            {
+                ChangeTurn();
+                var options = Board.GetAvailablePositions(Turn);
+                if (options.Count == 0)
+                {
+                    continue;
+                }
+
+                var rnd = new System.Random();
+                var selectedPos = options[rnd.Next(0, options.Count)];
+                Board.TryPlace(Turn, selectedPos);
+            }
+
+            return Board.Count(color);
+        }
+
+        // ターン変更
+        public void ChangeTurn()
+        {
+            if (Turn == CellStatus.Black) Turn = CellStatus.White;
+            else if (Turn == CellStatus.White) Turn = CellStatus.Black;
+        }
     }
 
 }

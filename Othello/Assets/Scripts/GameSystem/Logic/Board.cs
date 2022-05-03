@@ -20,15 +20,48 @@ namespace GameSystem.Logic
             (a, b) => new Value<CellStatus>(a, b)).AsObservable();
 
         // セル座標のバリデーション
-        private bool IsValidPos(Vector2Int pos)
-        {
-            return pos.x >= 0 && pos.x < CellSize && pos.y >= 0 && pos.y < CellSize;
-        }
+        private bool IsValidPos(Vector2Int pos) =>
+            pos.x >= 0 && pos.x < CellSize && pos.y >= 0 && pos.y < CellSize;
+        
+        // ゲーム終了フラグ
+        public bool FilledAll => Count(CellStatus.Empty) == 0 || 
+             (GetAvailablePositions(CellStatus.White).Count == 0 && GetAvailablePositions(CellStatus.Black).Count == 0);
 
         // コンストラクタ
         public Board()
         {
             InitializeProperties();
+        }
+
+        // コンストラクタ（初期盤面データ指定)
+        public Board(CellStatus[,] cells)
+        {
+            InitializeProperties();
+            for (int x = 0; x < CellSize; x++)
+            {
+                for (int y = 0; y < CellSize; y++)
+                {
+                    _cells[x, y].Value = cells[x, y];
+                }
+            }
+        }
+
+        /// <summary>
+        /// セル情報を取得します
+        /// </summary>
+        /// <returns></returns>
+        public CellStatus[,] GetAllCellStatus()
+        {
+            var cells = new CellStatus[CellSize, CellSize];
+            for (int x = 0; x < CellSize; x++)
+            {
+                for (int y = 0; y < CellSize; y++)
+                {
+                    cells[x, y] = _cells[x, y].Value;
+                }
+            }
+
+            return cells;
         }
 
         /// <summary>
@@ -100,6 +133,12 @@ namespace GameSystem.Logic
                 Debug.Log("Placed");
                 return PlaceOperationCode.Accepted;
             }
+            // 置く場所がなければ
+            else if (options.Count == 0)
+            {
+                return PlaceOperationCode.Skipped;
+            }
+            // 置けない場所であれば
             else
             {
                 return PlaceOperationCode.Rejected;

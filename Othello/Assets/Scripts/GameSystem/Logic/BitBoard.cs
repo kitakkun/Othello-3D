@@ -1,24 +1,41 @@
 using System;
-using System.Linq;
-using System.Runtime.InteropServices;
-using UniRx;
-using UnityEditor.Experimental.GraphView;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
-using UnityEngine.Video;
 
 namespace GameSystem.Logic
 {
     // ビットボード
     public class BitBoard
     {
-        public UInt64 Black { get; private set; }    // 黒の石の位置(1: 黒石, 0: 空)
-        public UInt64 White { get; private set; }    // 白の石の位置(1: 白石, 0: 空)
+        // 黒の石の位置(1: 黒石, 0: 空)
+        public virtual UInt64 Black { get => _black; protected set => _black = value; } 
+        private UInt64 _black;
+        // 白の石の位置(1: 白石, 0: 空)
+        public virtual UInt64 White { get => _white; protected set => _white = value; }    
+        private UInt64 _white;
 
         // 石が配置されている箇所が1, それ以外が0
         public UInt64 PlacedArea => Black | White;
         // 石が配置されていない箇所が1, それ以外が0
         public UInt64 EmptyArea => ~PlacedArea;
+        
+        // ビット配列を(x, y)座標の配列へ変換 1の場所がそれぞれ座標として返る
+        public List<Vector2Int> Bit2xy(UInt64 map)
+        {
+            var positions = new List<Vector2Int>();
+            for (var y = 0; y < 8; y++)
+            {
+                for (var x = 0; x < 8; x++)
+                {
+                    if ((map & CoordinateToBit(x, y)) != 0)
+                    {
+                        positions.Add(new Vector2Int(x, y));
+                    }
+                }
+            }
+
+            return positions;
+        }
         
         public UInt64 Color2Board(bool color)
         {
@@ -30,6 +47,28 @@ namespace GameSystem.Logic
             var _ = color == Constants.ColorBlack ? Black = newBoard : White = newBoard;
         }
 
+        public void DebugPrint(UInt64 map)
+        {
+            var str = "";
+            for (int y = 0; y < 8; y++)
+            {
+                for (int x = 0; x < 8; x++)
+                {
+                    if ((map & CoordinateToBit(x, y)) != 0)
+                    {
+                        str += " 1️ ";
+                    }
+                    else
+                    {
+                        str += " 0 ";
+                    }
+                }
+
+                str += "\n";
+            }
+
+            Debug.Log(str);  
+        }
         public void DebugPrint()
         {
             var str = "";
@@ -75,25 +114,38 @@ namespace GameSystem.Logic
         {
             UInt64 mask = 0x8000000000000000;  // 左端のみ立っているビット列
             mask >>= x;               // 横ずらし(x)
-            mask >>= (y * 8);         // 縦ずらし(y)
+            mask >>= y * 8;         // 縦ずらし(y)
             return mask;
         }
 
-        // (x, y)座標に配置します
-        public void Put(bool selfColor, int x, int y, bool reverse=true)
+        public PlaceOperationCode Put(bool selfColor, Vector2Int pos, bool reverse = true)
         {
+            return Put(selfColor, pos.x, pos.y, reverse);
+        }
+
+        // (x, y)座標に配置します
+        public PlaceOperationCode Put(bool selfColor, int x, int y, bool reverse=true)
+        {
+            if (!Positionable(selfColor, x, y))
+            {
+                return PlaceOperationCode.Rejected;
+            }
+            Debug.Log("Placed");
             // 石の配置
             var selfBoard = Color2Board(selfColor);
             var place = CoordinateToBit(x, y);
-            selfBoard |= place;
-            UpdateBoard(selfColor, selfBoard);
+            // selfBoard |= place;
+            // UpdateBoard(selfColor, selfBoard);
             
             // ひっくり返す処理
             if (reverse)
             {
                 var reverseMap = ReverseMap(selfColor, place);
+                DebugPrint(reverseMap);
                 Reverse(selfColor, reverseMap, place);
             }
+
+            return PlaceOperationCode.Accepted;
         }
 
         // 配置可能位置を算出
@@ -102,6 +154,15 @@ namespace GameSystem.Logic
             UInt64 place = CoordinateToBit(x, y);
             UInt64 availables = AvailablePositions(selfColor);
             return (place & availables) == place;
+        }
+        
+        // カウント
+        public int Count(bool color)
+        {
+            var board = Color2Board(color);
+            board = board - ((board >> 1) & 0x5555555555555555UL);
+            board = (board & 0x3333333333333333UL) + ((board >> 2) & 0x3333333333333333UL);
+            return (int)(unchecked(((board + (board >> 4)) & 0xF0F0F0F0F0F0F0FUL) * 0x101010101010101UL) >> 56);
         }
 
         // 反転マス検出
@@ -132,7 +193,7 @@ namespace GameSystem.Logic
         {
             var selfBoard = Color2Board(selfColor);
             var opponentBoard = Color2Board(!selfColor);
-            selfBoard ^= reverseMap;
+            selfBoard ^= reverseMap | place;
             opponentBoard ^= reverseMap;
             UpdateBoard(selfColor, selfBoard);
             UpdateBoard(!selfColor, opponentBoard);
@@ -155,7 +216,7 @@ namespace GameSystem.Logic
                 case Constants.DownLeft:
                     return (place >> Constants.SlashShift) & 0x00fefefefefefefe;
                 case Constants.Left:
-                    return (place << Constants.Left) & 0xfefefefefefefefe;
+                    return (place << Constants.HorizontalShift) & 0xfefefefefefefefe;
                 case Constants.UpLeft: 
                     return (place << Constants.BackslashShift) & 0xfefefefefefefe00;
                 default:

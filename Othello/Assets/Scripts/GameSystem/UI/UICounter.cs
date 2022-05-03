@@ -25,8 +25,8 @@ namespace GameSystem.UI
 
         void UpdateUI()
         {
-            var blackCnt = _boardController.Board.Count(CellStatus.Black);
-            var whiteCnt = _boardController.Board.Count(CellStatus.White);
+            var blackCnt = _boardController.Board.Count(Constants.ColorBlack);
+            var whiteCnt = _boardController.Board.Count(Constants.ColorWhite);
             _textMeshProUGUI.text = $"BLACK: {blackCnt}, WHITE: {whiteCnt}";
         }
     }

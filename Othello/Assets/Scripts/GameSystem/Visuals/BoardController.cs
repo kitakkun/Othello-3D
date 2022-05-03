@@ -5,14 +5,14 @@ namespace GameSystem.Visuals
 {
     public class BoardController : MonoBehaviour
     {
-        public Board Board { get; private set; }
+        public ObservableBitBoard Board { get; private set; }
         private BoardCell[] _boardCells;
 
         // セットアップ
         public void Setup()
         {
             // 盤面を初期化
-            Board = new Board();
+            Board = new ObservableBitBoard();
             _boardCells = FindObjectsOfType<BoardCell>();
             foreach (var cell in _boardCells)
             {
@@ -21,9 +21,9 @@ namespace GameSystem.Visuals
         }
 
         // ライトアップ
-        public void IndicateAvailablePos(CellStatus turnColor)
+        public void IndicateAvailablePos(bool turnColor)
         {
-            var list = Board.GetAvailablePositions(turnColor);
+            var list = Board.Bit2xy(Board.AvailablePositions(turnColor));
             foreach (var cell in _boardCells)
             {
                 cell.TurnOffHighlight();
